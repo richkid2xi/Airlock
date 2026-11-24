@@ -1,0 +1,10 @@
+node_modules
+.next
+dist
+.turbo
+target
+.env*
+!.env.example
+test-ledger
+.anchor
+*.log

@@ -1,0 +1,28 @@
+{
+  "name": "airlock",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "pnpm@12.23.0",
+  "scripts": {
+    "dev": "turbo run dev --parallel --filter=@airlock/web --filter=@airlock/engine",
+    "dev:web": "turbo run dev --filter=@airlock/web",
+    "dev:engine": "turbo run dev --filter=@airlock/engine",
+    "dev:agent": "turbo run dev --filter=@airlock/demo-agent",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "node scripts/test-runner.mjs",
+    "test:vitest": "turbo run test:vitest",
+    "test:baseline": "pnpm test:vitest && node scripts/update-baseline.mjs",
+    "bench": "turbo run bench",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,mjs,json,md}\"",
+    "clean": "turbo run clean && rimraf node_modules"
+  },
+  "devDependencies": {
+    "prettier": "^3.5.0",
+    "turbo": "^2.4.0",
+    "rimraf": "^6.0.1"
+  }
+}

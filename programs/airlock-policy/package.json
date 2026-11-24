@@ -1,0 +1,25 @@
+{
+  "name": "@airlock/program-tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint --no-error-on-unmatched-pattern tests",
+    "test": "vitest run",
+    "test:vitest": "vitest run --reporter=json --outputFile=../../.turbo/test-results/airlock-policy.json",
+    "bench": "vitest bench"
+  },
+  "devDependencies": {
+    "@airlock/config": "workspace:*",
+    "@eslint/js": "^9.20.0",
+    "@solana/web3.js": "^1.98.0",
+    "@types/node": "^20.17.19",
+    "@typescript-eslint/eslint-plugin": "^8.24.0",
+    "@typescript-eslint/parser": "^8.24.0",
+    "eslint": "^9.20.0",
+    "litesvm": "^1.6.2",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}
