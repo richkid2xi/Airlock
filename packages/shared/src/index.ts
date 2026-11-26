@@ -6,3 +6,4 @@ export * from './tx-event.js';
 export type { Scenario, ScenarioStage, ScenarioStep, ScenarioStepStatus } from './scenario.js';
 export { ScenarioSchema } from './scenario.js';
 export * from './app-types.js';
+export * from './assets.js';

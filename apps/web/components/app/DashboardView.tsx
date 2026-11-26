@@ -25,9 +25,10 @@ type CardProps = { className?: string };
 function CountUp({ value }: { value: number }) {
   const [display, setDisplay] = useState(value);
   const rafRef = useRef<number | null>(null);
+  const startRef = useRef(value);
 
   useEffect(() => {
-    const start = display;
+    const start = startRef.current;
     const end = value;
     const diff = end - start;
     const duration = 400;
@@ -49,7 +50,9 @@ function CountUp({ value }: { value: number }) {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [value, display]);
+  }, [value]);
+
+  startRef.current = value;
 
   return (
     <span
@@ -122,7 +125,7 @@ function StatsCard({ className }: CardProps) {
     {
       label: appContent.dashboard.statLabels[0],
       value: loading || !stats ? <span>—</span> : <CountUp value={stats.fundsProtectedUsd} />,
-      delta: "+$0 today",
+      delta: "+0 USDC today",
       tone: "primary",
     },
     {

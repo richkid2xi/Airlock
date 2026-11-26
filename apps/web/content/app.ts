@@ -60,9 +60,9 @@ export const appContent = {
       {
         id: "conservative",
         title: "Conservative",
-        description: "$100 per transaction · $500 daily",
+        description: "100 USDC per transaction · 500 USDC daily",
       },
-      { id: "balanced", title: "Balanced", description: "$500 per transaction · $2,000 daily" },
+      { id: "balanced", title: "Balanced", description: "500 USDC per transaction · 2,000 USDC daily" },
       { id: "custom", title: "Custom", description: "Start with defaults and edit after creation" },
     ],
     amountLabel: "Mock vault funding",

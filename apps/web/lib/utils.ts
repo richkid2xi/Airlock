@@ -1,13 +1,11 @@
+import { formatUsdc, formatCompactUsdc } from "@airlock/shared";
+
 export function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
 export function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
+  return formatUsdc(value);
 }
 
 export function formatRelativeTime(value: string) {
@@ -23,3 +21,5 @@ export function formatRelativeTime(value: string) {
 export function truncateAddress(value: string, start = 6, end = 5) {
   return `${value.slice(0, start)}…${value.slice(-end)}`;
 }
+
+export { formatUsdc, formatCompactUsdc };
