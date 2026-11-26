@@ -9,4 +9,5 @@ test-ledger
 .anchor
 *.log
 Airlock_UI
+stitch_airlock_crypto_firewall_dashboard/
 
