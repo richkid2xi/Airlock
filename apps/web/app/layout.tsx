@@ -28,7 +28,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${robotoFlex.variable} ${robotoMono.variable} min-h-screen antialiased`}>
+      <body className={`${robotoFlex.variable} ${robotoMono.variable} min-h-screen antialiased`} suppressHydrationWarning>
         <ConditionalChrome>{children}</ConditionalChrome>
       </body>
     </html>

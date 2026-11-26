@@ -25,20 +25,33 @@ type CardProps = { className?: string };
 function CountUp({ value }: { value: number }) {
   const [display, setDisplay] = useState(value);
   const rafRef = useRef<number | null>(null);
-  const startRef = useRef(value);
+  const prevRef = useRef(value);
 
   useEffect(() => {
-    const start = startRef.current;
-    const end = value;
-    const diff = end - start;
-    const duration = 400;
-    const startTime = Date.now();
+    const from = prevRef.current;
+    prevRef.current = value;
 
-    const tick = () => {
-      const elapsed = Date.now() - startTime;
+    if (from === value) {
+      setDisplay(value);
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (prefersReduced) {
+        setDisplay(value);
+        return;
+      }
+    }
+
+    const duration = 400;
+    const startTime = performance.now();
+
+    const tick = (now: number) => {
+      const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(Math.round(start + diff * eased));
+      setDisplay(Math.round(from + (value - from) * eased));
       if (progress < 1) {
         rafRef.current = requestAnimationFrame(tick);
       } else {
@@ -51,8 +64,6 @@ function CountUp({ value }: { value: number }) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, [value]);
-
-  startRef.current = value;
 
   return (
     <span

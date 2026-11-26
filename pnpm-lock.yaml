@@ -349,6 +349,9 @@ importers:
       lucide-react:
         specifier: ^0.475.0
         version: 0.475.0(react@18.3.1)
+      material-symbols:
+        specifier: ^0.49.0
+        version: 0.49.0
       next:
         specifier: ^14.2.24
         version: 14.2.35(@babel/core@7.29.13(supports-color@8.1.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -425,6 +428,9 @@ importers:
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@20.19.43)(supports-color@8.1.1)(terser@5.51.4)
 
   packages/golden:
     devDependencies:
@@ -548,6 +554,9 @@ importers:
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@20.19.43)(supports-color@8.1.1)(terser@5.51.4)
 
   programs/airlock-policy:
     devDependencies:
@@ -5805,6 +5814,9 @@ packages:
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
+
+  material-symbols@0.49.0:
+    resolution: {integrity: sha512-3yFCfEA1+gZPsTJYXWbEmNgxvm0pFpXuVIyUMJzjajMGpZ5vOTPan4p8VO1x0pIAE2fPmf/N9ZZuGiFfTyLF3Q==}
 
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
@@ -14449,6 +14461,8 @@ snapshots:
   magic-string@0.30.21:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.6.0
+
+  material-symbols@0.49.0: {}
 
   math-intrinsics@1.1.0: {}
 

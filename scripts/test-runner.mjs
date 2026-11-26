@@ -19,17 +19,26 @@ for (const file of fs.readdirSync(testResultsDir)) {
   }
 }
 
-// Run turbo test:vitest
-console.log('> turbo run test:vitest');
-const turboResult = spawnSync('pnpm', ['turbo', 'run', 'test:vitest'], {
+// Run turbo test:vitest (or fallback to pnpm recursive if turbo hits sandbox I/O issues)
+console.log('> running test:vitest');
+let testResult = spawnSync('pnpm', ['turbo', 'run', 'test:vitest'], {
   stdio: 'inherit',
   shell: true,
   cwd: rootDir,
 });
 
-if (turboResult.status !== 0) {
-  console.error('Turbo test run failed with exit code:', turboResult.status);
-  process.exit(turboResult.status || 1);
+if (testResult.status !== 0) {
+  console.log('> turbo run encountered an error, falling back to pnpm recursive test:vitest...');
+  testResult = spawnSync('pnpm', ['-r', 'run', 'test:vitest'], {
+    stdio: 'inherit',
+    shell: true,
+    cwd: rootDir,
+  });
+}
+
+if (testResult.status !== 0) {
+  console.error('Test run failed with exit code:', testResult.status);
+  process.exit(testResult.status || 1);
 }
 
 // Run check-tests.mjs
