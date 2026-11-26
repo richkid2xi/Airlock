@@ -17,10 +17,10 @@ type TxDetailDrawerProps = {
 export default function TxDetailDrawer({ event, agentName, onClose }: TxDetailDrawerProps) {
   const policyFailure =
     event?.verdict === "BLOCK" &&
-    event.ruleFired !== "intent mismatch" &&
+    event.ruleFired !== "intent_mismatch" &&
     event.intentResult?.match !== false;
   const intentFailure =
-    event?.intentResult?.match === false || event?.ruleFired === "intent mismatch";
+    event?.intentResult?.match === false || event?.ruleFired === "intent_mismatch";
 
   return (
     <AnimatePresence>

@@ -1,7 +1,7 @@
 import type { DataSource } from './types.js';
-import type { Agent, Policy, TxEvent, Scenario, AppStats, AgentConnection, Session } from "@airlock/shared";
+import type { Agent, Policy, TxEvent, Scenario, AppStats, AgentConnection, Session, Supplier, Invoice, InvoiceStatus, PaymentRequest, RuleFired } from "@airlock/shared";
 import type { SdkSnippet } from "@airlock/shared";
-import { clone, nowIso, DAY, seedAgents, seedPolicies, seedEvents, seedScenarios, seedConnections, seedSession } from "./mock-data/index.js";
+import { clone, nowIso, DAY, seedAgents, seedPolicies, seedEvents, seedScenarios, seedConnections, seedSession, seedSuppliers, seedInvoices } from "./mock-data/index.js";
 
 class MockStore implements DataSource {
   private agents: Agent[] = [];
@@ -14,6 +14,8 @@ class MockStore implements DataSource {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private sequence = 100;
   private demoSession: Session | null = null;
+  private suppliers: Map<string, Supplier> = new Map();
+  private invoices: Map<string, Invoice> = new Map();
 
   constructor() {
     this.restore();
@@ -26,8 +28,239 @@ class MockStore implements DataSource {
     this.scenarios = seedScenarios();
     this.connections = new Map(seedConnections().map((c: AgentConnection) => [c.agentId, c]));
     this.apiKeys = new Map([["agent-trader", "sk_air_3f8a"], ["agent-payroll", "sk_air_7b2c"], ["agent-support", "sk_air_1d9e"]]);
+    this.suppliers = new Map(seedSuppliers().map((s: Supplier) => [s.id, s]));
+    this.invoices = new Map(seedInvoices().map((i: Invoice) => [i.id, i]));
     this.sequence = 100;
     this.demoSession = seedSession();
+  }
+
+  // ---- Supplier methods ----
+  async listSuppliers(agentId: string): Promise<Supplier[]> {
+    const agent = this.agents.find((a) => a.id === agentId);
+    if (!agent) return [];
+    const policy = this.policies.find((p) => p.agentId === agentId);
+    const requireVerified = (policy as any)?.invoiceRules?.requireVerifiedSupplier ?? false;
+    return clone(
+      Array.from(this.suppliers.values()).filter((s) => {
+        if (requireVerified) return s.verified;
+        return true;
+      }),
+    );
+  }
+
+  async addSupplier(agentId: string, input: { name: string; payoutWallet: string; verified?: boolean; country?: string }): Promise<Supplier> {
+    const id = `sup-${Date.now()}`;
+    const supplier: Supplier = {
+      id,
+      name: input.name,
+      payoutWallet: input.payoutWallet,
+      verified: input.verified ?? false,
+      country: input.country,
+      addedAt: nowIso(),
+    };
+    this.suppliers.set(id, supplier);
+    return clone(supplier);
+  }
+
+  async verifySupplier(supplierId: string): Promise<Supplier> {
+    const supplier = this.suppliers.get(supplierId);
+    if (!supplier) throw new Error("Supplier not found");
+    supplier.verified = true;
+    this.suppliers.set(supplierId, supplier);
+    return clone(supplier);
+  }
+
+  // ---- Invoice methods ----
+  async listInvoices(agentId?: string, filter?: { status?: InvoiceStatus }): Promise<Invoice[]> {
+    const all = clone(Array.from(this.invoices.values()));
+    let result = all;
+    if (agentId) result = result.filter((inv) => inv.agentId === agentId);
+    if (filter?.status) result = result.filter((inv) => inv.status === filter.status);
+    return result;
+  }
+
+  async getInvoice(id: string): Promise<Invoice | null> {
+    return clone(this.invoices.get(id) ?? null);
+  }
+
+  async registerInvoice(agentId: string, input: { supplierId: string; amount: number; dueDate: string; reference?: string }): Promise<Invoice> {
+    const supplier = this.suppliers.get(input.supplierId);
+    if (!supplier) throw new Error("Supplier not found");
+    const invoice: Invoice = {
+      id: `inv-${Date.now()}`,
+      agentId,
+      supplierId: input.supplierId,
+      supplierName: supplier.name,
+      amount: input.amount,
+      currency: "USDC",
+      dueDate: input.dueDate,
+      docHash: `doc-${Math.random().toString(36).slice(2, 32)}`,
+      reference: input.reference ?? `REF-${Math.random().toString(36).slice(2, 16)}`,
+      status: "open",
+      deliveryAttested: false,
+      attestedAt: undefined,
+      paidAt: undefined,
+      paymentSignature: undefined,
+      createdAt: nowIso(),
+    };
+    this.invoices.set(invoice.id, invoice);
+    return clone(invoice);
+  }
+
+  async attestDelivery(invoiceId: string): Promise<Invoice> {
+    const invoice = this.invoices.get(invoiceId);
+    if (!invoice) throw new Error("Invoice not found");
+    invoice.deliveryAttested = true;
+    invoice.attestedAt = nowIso();
+    this.invoices.set(invoiceId, invoice);
+    return clone(invoice);
+  }
+
+  async disputeInvoice(invoiceId: string): Promise<Invoice> {
+    const invoice = this.invoices.get(invoiceId);
+    if (!invoice) throw new Error("Invoice not found");
+    invoice.status = "disputed";
+    this.invoices.set(invoiceId, invoice);
+    return clone(invoice);
+  }
+
+  private evalPayment(agentId: string, request: PaymentRequest, invoice: Invoice | null): { verdict: "ALLOW" | "BLOCK" | "HOLD"; ruleFired?: RuleFired; reason?: string } {
+    const agent = this.agents.find((a) => a.id === agentId);
+    const policy = this.policies.find((p) => p.agentId === agentId);
+    if (!agent || !policy) return { verdict: "BLOCK", ruleFired: "invoice_not_found", reason: "Agent or policy not found" };
+
+    // 1. Frozen agent
+    if (agent.status === "frozen") return { verdict: "BLOCK", ruleFired: "frozen", reason: "Agent is frozen" };
+
+    // 2. Missing invoice
+    if (!invoice) return { verdict: "BLOCK", ruleFired: "invoice_not_found", reason: "Invoice not found" };
+
+    const supplier = this.suppliers.get(invoice.supplierId) ?? null;
+
+    // 3. Invoice already paid, cancelled, or disputed
+    if (invoice.status === "paid" || invoice.status === "cancelled" || invoice.status === "disputed") {
+      return { verdict: "BLOCK", ruleFired: "invoice_not_payable", reason: `Invoice is already ${invoice.status}` };
+    }
+
+    // 4. Payee mismatch
+    if (supplier && request.payTo !== supplier.payoutWallet) {
+      return { verdict: "BLOCK", ruleFired: "payee_mismatch", reason: `Payee ${request.payTo} does not match invoice supplier wallet ${supplier.payoutWallet}` };
+    }
+
+    // 5. Amount mismatch
+    if (request.amount !== invoice.amount) {
+      return { verdict: "BLOCK", ruleFired: "amount_mismatch", reason: `Requested ${request.amount} USDC does not match invoice ${invoice.amount} USDC` };
+    }
+
+    // 6. Supplier unverified when required
+    if (policy.invoiceRules?.requireVerifiedSupplier && supplier?.verified === false) {
+      return { verdict: "BLOCK", ruleFired: "supplier_unverified", reason: "Supplier is not verified" };
+    }
+
+    // 7. Invoice amount cap
+    if (policy.invoiceRules?.perInvoiceCapUsdc && request.amount > policy.invoiceRules.perInvoiceCapUsdc) {
+      return { verdict: "BLOCK", ruleFired: "over_invoice_cap", reason: `Amount ${request.amount} USDC exceeds per-invoice cap ${policy.invoiceRules.perInvoiceCapUsdc} USDC` };
+    }
+
+    // 8. Daily spending cap
+    const today = nowIso().slice(0, 10);
+    const absDeltas = this.events
+      .filter((e) => e.agentId === agentId && e.ts?.slice(0, 10) === today && e.verdict === "ALLOW")
+      .reduce((sum, e) => sum + Math.abs(e.effects?.[0]?.delta ?? 0), 0);
+    const dailyCap = policy.dailyCapUsd ?? 0;
+    if (absDeltas + request.amount > dailyCap) {
+      return { verdict: "BLOCK", ruleFired: "daily_cap", reason: `Daily total ${absDeltas + request.amount} USDC exceeds cap ${dailyCap} USDC` };
+    }
+
+    // 9. Missing delivery attestation (if required)
+    if (policy.invoiceRules?.requireDeliveryAttestation && !invoice.deliveryAttested) {
+      return { verdict: "HOLD", ruleFired: "delivery_not_attested", reason: "Delivery not yet attested" };
+    }
+
+    // 10. Intent check on evidence
+    const suspiciousPhrases = ["ignore previous", "new bank details", "payment details changed"];
+    const hasSuspiciousText = suspiciousPhrases.some((p) => (request.evidence ?? "").toLowerCase().includes(p));
+    const intentCheckEnabled = policy.intentCheck ?? false;
+    if (intentCheckEnabled && (hasSuspiciousText || (supplier && request.payTo !== supplier.payoutWallet))) {
+      return { verdict: "BLOCK", ruleFired: "intent_mismatch", reason: "Suspicious invoice text or wallet mismatch, blocked by intent check" };
+    }
+
+    // 11. ALLOW — mark invoice paid, decrement vault balance once, attach mock signature; record event
+    const payoutWallet = supplier?.payoutWallet ?? "unknown";
+    const allowEvent: TxEvent = {
+      id: `ev-${Date.now()}`,
+      agentId,
+      ts: nowIso(),
+      intentText: request.intent ?? `Pay ${invoice.supplierName} ${invoice.amount} USDC`,
+      programs: ["System Program"],
+      effects: [{ asset: "USDC", delta: -request.amount, counterparty: payoutWallet }],
+      verdict: "ALLOW",
+      ruleFired: undefined,
+      intentResult: { match: true, confidence: 1.0, note: "All checks passed" },
+      reason: "Invoice payment allowed",
+      signature: `5hK${Math.round(Date.now() / 1000)}Airlock`,
+    };
+    this.events = [allowEvent, ...this.events];
+    const agentIndex = this.agents.findIndex((a) => a.id === agentId);
+    if (agentIndex >= 0) {
+      this.agents[agentIndex].balanceUsd = Math.max(0, this.agents[agentIndex].balanceUsd - request.amount);
+    }
+    invoice.status = "paid";
+    invoice.paidAt = nowIso();
+    invoice.paymentSignature = allowEvent.signature;
+    this.invoices.set(invoice.id, invoice);
+    return { verdict: "ALLOW", ruleFired: undefined, reason: "Invoice payment allowed" };
+  }
+
+  async submitPayment(agentId: string, request: PaymentRequest): Promise<TxEvent> {
+    const invoice = request.invoiceId ? this.invoices.get(request.invoiceId) ?? null : null;
+    const result = this.evalPayment(agentId, request, invoice);
+
+    if (result.verdict === "ALLOW") {
+      // Already recorded inside evalPayment: event pushed, balance decremented, invoice marked paid
+      // Return the most recently recorded ALLOW event for this agent
+      const recorded = this.events[0];
+      if (recorded && recorded.agentId === agentId && recorded.verdict === "ALLOW") return recorded;
+      return this.buildTxEvent(agentId, request, invoice!, "ALLOW");
+    }
+
+    // BLOCK or HOLD — record event without deducting funds
+    return this.buildBlockEvent(agentId, request, invoice, result);
+  }
+
+  private buildTxEvent(agentId: string, request: PaymentRequest, invoice: Invoice | null, verdict: "ALLOW"): TxEvent {
+    const supplier = invoice ? this.suppliers.get(invoice.supplierId) : null;
+    return {
+      id: `ev-${Date.now()}`,
+      agentId,
+      ts: nowIso(),
+      intentText: request.intent ?? `Pay ${invoice?.supplierName ?? "unknown"} ${invoice?.amount ?? 0} USDC`,
+      programs: ["System Program"],
+      effects: [{ asset: "USDC", delta: -request.amount, counterparty: supplier?.payoutWallet ?? "unknown" }],
+      verdict,
+      ruleFired: undefined,
+      intentResult: { match: true, confidence: 1.0, note: "All checks passed" },
+      reason: "Invoice payment allowed",
+      signature: `5hK${Math.round(Date.now() / 1000)}Airlock`,
+    };
+  }
+
+  private buildBlockEvent(agentId: string, request: PaymentRequest, invoice: Invoice | null, result: { verdict: "ALLOW" | "BLOCK" | "HOLD"; ruleFired?: RuleFired; reason?: string }): TxEvent {
+    const { verdict, ruleFired, reason } = result;
+    const supplier = invoice ? this.suppliers.get(invoice.supplierId) : null;
+    return {
+      id: `ev-${Date.now()}`,
+      agentId,
+      ts: nowIso(),
+      intentText: request.intent ?? `Pay ${invoice?.supplierName ?? "unknown"} ${invoice?.amount ?? 0} USDC`,
+      programs: ["System Program"],
+      effects: [],
+      verdict,
+      ruleFired,
+      intentResult: { match: false, confidence: 0.2, note: "Payment blocked" },
+      reason: reason ?? "Payment blocked",
+      signature: undefined,
+    };
   }
 
   private emit(event: TxEvent) {
@@ -153,7 +386,7 @@ class MockStore implements DataSource {
     event.reason =
       resolution === "approve" ? "Approved by the wallet owner" : "Rejected by the wallet owner";
     if (event.verdict === "ALLOW") event.signature = `5hK${Date.now()}Airlock`;
-    if (event.verdict === "BLOCK") event.ruleFired = "owner rejected approval";
+    if (event.verdict === "BLOCK") event.signature = undefined;
     this.subscribers.forEach((subscriber) => subscriber(clone(event)));
     return clone(event);
   }
@@ -219,6 +452,12 @@ class MockStore implements DataSource {
     const allowedCount = this.events.filter((event) => event.verdict === "ALLOW").length;
     const blockedCount = this.events.filter((event) => event.verdict === "BLOCK").length;
     const heldCount = this.events.filter((event) => event.verdict === "HOLD").length;
+    const fundsProtected = this.events
+      .filter((event) => event.verdict === "BLOCK")
+      .reduce((sum, event) => {
+        const amt = event.effects?.[0]?.delta;
+        return amt ? sum + Math.abs(amt) : sum;
+      }, 0);
     const series = Array.from({ length: 7 }, (_, index) => {
       const date = new Date(Date.now() - (6 - index) * DAY);
       const day = date.toLocaleDateString("en-US", { weekday: "short" });
@@ -229,7 +468,7 @@ class MockStore implements DataSource {
       };
     });
     return {
-      fundsProtectedUsd: this.agents.reduce((sum, agent) => sum + agent.balanceUsd, 0),
+      fundsProtectedUsd: fundsProtected,
       allowedCount,
       blockedCount,
       heldCount,
@@ -370,7 +609,7 @@ function createEvent(index: number, verdict?: TxEvent["verdict"]): TxEvent {
         : []),
     ],
     verdict: resolvedVerdict,
-    ruleFired: resolvedVerdict === "BLOCK" ? blockReason[1] : undefined,
+    ruleFired: resolvedVerdict === "BLOCK" ? (blockReason[1] as RuleFired) : undefined,
     intentResult: {
       match: !(resolvedVerdict === "BLOCK" && index % 5 === 4),
       confidence: resolvedVerdict === "BLOCK" && index % 5 === 4 ? 0.18 : 0.94,
