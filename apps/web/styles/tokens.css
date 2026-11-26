@@ -1,0 +1,128 @@
+:root {
+  /* Core palette — Obsidian + Cobalt Airlock (dark product) */
+  --color-ink: #F8FAFC;
+  --color-navy: #0F172A;
+  --color-navy-soft: #1E293B;
+  --color-navy-deep: #0F172A;
+  --color-signal: #3B82F6;
+  --color-blue-hover: #2563EB;
+  --sky-tint: #3B82F6;
+  --border-default: #1E293B;
+  --border-subtle: #1E293B;
+  --border-strong: #334155;
+  --surface: #101218;
+  --surface-2: #0B1020;
+  --color-muted: #94A3B8;
+  --allow: #22C55E;
+  --block: #EF4444;
+  --hold: #F59E0B;
+  --accent-glow: rgba(59, 130, 246, 0.18);
+  --color-blue: var(--color-signal);
+  --color-cyan: var(--sky-tint);
+  --color-eyebrow-light: var(--color-signal);
+  --color-paper: var(--surface);
+  --color-mist: #0B1020;
+
+  /* Typography colors on dark surfaces (WCAG AA >= 4.5:1) */
+  --color-slate: #CBD5E1;
+  --color-line: var(--border-default);
+
+  /* Surfaces — obsidian */
+  --bg-page: #0D0E12;
+  --bg-panel: #101218;
+  --bg-panel-raised: #131620;
+
+  /* Text on dark */
+  --text-primary: #F1F5F9;
+  --text-body: #94A3B8;
+  --text-secondary: #64748B;
+  --text-tertiary: #475569;
+
+  /* Light surfaces (illustrations, product UI, modal) */
+  --surface-light: var(--surface);
+  --surface-light-muted: #0B1020;
+  --placeholder-bar: #1E293B;
+
+  /* Lines */
+  --border-subtle: #1E293B;
+  --border-default: #1E293B;
+  --border-strong: #334155;
+
+  /* Glass (hero badge, scrolled header) — dark, frosted */
+  --glass-bg: rgba(15, 23, 42, 0.72);
+  --glass-blur: blur(20px);
+
+  /* Radii */
+  --radius-pill: 9999px;
+  --radius-panel: 24px;
+  --radius-card: 16px;
+  --radius-tile: 12px;
+  --radius-small: 8px;
+
+  /* Elevation — subtle, surface tone */
+  --shadow-mockup: 0 30px 80px -20px rgba(0, 0, 0, 0.9);
+  --shadow-light-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -8px rgba(0, 0, 0, 0.6);
+
+  /* Spacing (4px base) */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
+  --space-6: 48px;
+  --space-8: 64px;
+  --space-10: 80px;
+  --space-12: 96px;
+  --space-16: 128px;
+
+  /* Layout */
+  --content-max: 1280px;
+  --gutter: 48px;
+  --section-y: 120px;
+  --panel-pad: 48px;
+  --heading-to-content: 64px;
+
+  /* Header */
+  --header-height-initial: 80px;
+  --header-height-scrolled: 64px;
+
+  /* Type families */
+  --font-sans: var(--font-roboto), -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-display: var(--font-roboto), -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-roboto-mono), ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Type scale */
+  --font-size-hero: 56px;
+  --font-size-section: 38px;
+  --font-size-card: 28px;
+  --font-size-page: 22px;
+  --font-size-card-title: 16px;
+  --font-size-body: 14px;
+  --font-size-secondary: 13px;
+  --font-size-label: 12px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-fast: 120ms ease;
+  --transition-normal: 200ms var(--ease-out);
+
+  /* App shell tokens (aliased to landing palette) */
+  --color-primary: var(--color-signal);
+  --color-primary-dark: var(--color-blue-hover);
+  --color-sky: var(--sky-tint);
+  --color-sky-deep: var(--color-signal);
+  --color-navy: var(--color-navy);
+  --color-ink: var(--color-ink);
+  --color-muted: var(--color-muted);
+  --color-border: var(--border-default);
+  --color-surface: var(--surface);
+  --color-lavender: #eee9ff;
+  --color-success: var(--allow);
+  --color-danger: var(--block);
+  --color-warning: var(--hold);
+  --radius-card: 12px;
+  --radius-pill: 999px;
+  --shadow-soft: 0 14px 38px rgba(30, 58, 94, 0.07);
+  --shadow-float: 0 10px 24px rgba(10, 84, 180, 0.13);
+  --space-rhythm: 6rem;
+}

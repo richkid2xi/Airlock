@@ -1,19 +1,15 @@
-// TODO: picks implementation by NEXT_PUBLIC_MODE = mock|live, default mock
-import { MockDataSource } from './mock.js';
-import { LiveDataSource } from './live.js';
+import { mockDataSource } from './mock.js';
 import type { DataSource } from './types.js';
-
-export * from './types.js';
-export * from './mock.js';
-export * from './live.js';
 
 declare const process: { env: Record<string, string | undefined> } | undefined;
 
 export function createDataSource(): DataSource {
   const mode = typeof process !== 'undefined' && process?.env?.NEXT_PUBLIC_MODE;
   if (mode === 'live') {
-    return new LiveDataSource(process?.env?.NEXT_PUBLIC_ENGINE_URL);
+    throw new Error('Live datasource not implemented in this setup');
   }
-  return new MockDataSource();
+  return mockDataSource;
 }
 
+export * from './types.js';
+export * from './mock.js';

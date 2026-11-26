@@ -16,7 +16,9 @@
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint --no-error-on-unmatched-pattern src"
+    "lint": "eslint --no-error-on-unmatched-pattern src",
+    "test": "vitest run",
+    "test:vitest": "vitest run --reporter=json --outputFile=../../.turbo/test-results/datasource.json"
   },
   "dependencies": {
     "@airlock/shared": "workspace:*"
@@ -28,6 +30,7 @@
     "@typescript-eslint/parser": "^8.24.0",
     "eslint": "^9.20.0",
     "tsup": "^8.3.6",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
   }
 }
