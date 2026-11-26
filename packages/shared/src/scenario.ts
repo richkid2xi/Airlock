@@ -31,6 +31,7 @@ export const ScenarioSchema = z.object({
   description: z.string(),
   steps: z.array(ScenarioStepSchema),
   resultEvent: TxEventSchema,
+  evidence: z.string().optional(),
 });
 
 export type Scenario = z.infer<typeof ScenarioSchema>;
